@@ -1,0 +1,14 @@
+WITH production_table AS (
+  SELECT
+    production.*,
+    product.min_batch_time
+  FROM manufacturing_downtime.line_productivity AS production
+  INNER JOIN manufacturing_downtime.products AS product
+    ON production.product_id = product.product_id
+)
+
+SELECT
+  production_table.batch_id,
+  ROUND(SAFE_DIVIDE(production_table.duration_in_minutes, production_table.min_batch_time), 2) AS ratio_efficiency
+FROM production_table
+ 

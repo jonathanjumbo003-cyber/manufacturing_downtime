@@ -1,0 +1,48 @@
+/* The trick here is to look for errors that the operator influence. In normal
+words, errors that are caused by the operator. WE will be using all tables apart from products. */
+
+WITH downtime1 AS (
+SELECT *,
+  CASE
+    WHEN downtime.downtime_in_minutes is NULL THEN 0
+    ELSE 1
+  END AS flag_count
+FROM manufacturing_downtime.line_downtime AS downtime
+),
+downtime2 AS (
+  SELECT
+    downtime1.batch_id AS batch_id,
+    production.operator_name as operator_name,
+    downtime1.factor_id AS factor_id,
+    downtime1.flag_count AS flag_count
+  FROM downtime1
+  INNER JOIN manufacturing_downtime.line_productivity AS production
+    ON downtime1.batch_id = production.batch_id
+),
+analysis1 AS (
+  SELECT
+    downtime2.operator_name AS operator_name,
+    downtime2.factor_id AS factor_id,
+    SUM(downtime2.flag_count) AS flag_count
+  FROM downtime2
+  GROUP BY
+    downtime2.operator_name,
+    downtime2.factor_id
+),
+analysis2 AS (
+  SELECT
+    analysis1.operator_name AS operator_name,
+    analysis1.factor_id AS factor_id,
+    analysis1.flag_count AS flag_count,
+    factors.description AS description,
+    factors.operator_error AS operator_error
+  FROM analysis1
+  INNER JOIN manufacturing_downtime.downtime_factors AS factors
+    ON analysis1.factor_id = factors.factor_id
+)
+
+SELECT *
+FROM analysis2
+WHERE
+  analysis2.flag_count > 0 AND
+  analysis2.operator_error is TRUE

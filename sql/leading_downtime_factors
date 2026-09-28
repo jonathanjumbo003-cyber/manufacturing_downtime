@@ -1,0 +1,32 @@
+/* To get the leading downtime factors we will look at two tables.
+- line_downtime and
+- downtime_factors. */
+
+ WITH leading_factors AS (
+  SELECT *,
+    CASE
+      WHEN downtime.downtime_in_minutes IS NULL THEN 0
+      ELSE 1
+    END AS factor_flag
+ FROM manufacturing_downtime.line_downtime AS downtime
+),
+factor_count AS (
+SELECT
+  leading_factors.factor_id AS factor_id,
+  SUM(leading_factors.factor_flag) AS flag_count
+FROM leading_factors
+GROUP BY
+  leading_factors.factor_id  
+)
+
+SELECT
+  factor_count.factor_id,
+  factors.description,
+  factor_count.flag_count
+FROM factor_count
+INNER JOIN manufacturing_downtime.downtime_factors AS factors
+  ON factor_count.factor_id = factors.factor_id
+ORDER BY
+  factor_count.flag_count DESC
+
+-- Note: in this data downtime_in_minutes doesn't have a 0 value so we are safe.

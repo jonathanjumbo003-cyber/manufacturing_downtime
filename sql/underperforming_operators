@@ -1,0 +1,22 @@
+/* For this i will use a general ratio_effieciency and aggregate the to the operators, to
+get a more weighted performance indicator. */
+
+WITH production_table AS (
+  SELECT
+    production.batch_id AS batch_id,
+    production.operator_name AS operator_name,
+    production.duration_in_minutes AS duration,
+    product.min_batch_time AS min_time
+  FROM manufacturing_downtime.line_productivity AS production
+  INNER JOIN manufacturing_downtime.products AS product
+    ON production.product_id = product.product_id
+)
+
+SELECT
+  production_table.operator_name AS operator_name,
+  ROUND(SAFE_DIVIDE(SUM(production_table.duration), SUM(production_table.min_time)), 2) AS general_ratio_efficiency
+FROM production_table
+GROUP BY
+  production_table.operator_name
+ORDER BY
+  general_ratio_efficiency DESC

@@ -67,11 +67,33 @@ FROM production_table
 
 A ratio of **1.00** means the batch took exactly the minimum expected production time, while a ratio above 1.00 indicates that the batch took longer than the minimum benchmark.
 
-[View the Batch Efficiency Graph](assets/ratio_efficiency vs. batch_id.png)
+![View the Batch Efficiency Graph](assets/ratio_efficiency vs. batch_id.png)
 
 ## 2. Are any operators underperforming?
 
 To compare operators, I used a **time-weighted efficiency ratio** by dividing each operator's total production time by their total minimum expected production time.
+
+```sql
+WITH production_table AS (
+  SELECT
+    production.batch_id AS batch_id,
+    production.operator_name AS operator_name,
+    production.duration_in_minutes AS duration,
+    product.min_batch_time AS min_time
+  FROM manufacturing_downtime.line_productivity AS production
+  INNER JOIN manufacturing_downtime.products AS product
+    ON production.product_id = product.product_id
+)
+
+SELECT
+  production_table.operator_name AS operator_name,
+  ROUND(SAFE_DIVIDE(SUM(production_table.duration), SUM(production_table.min_time)), 2) AS general_ratio_efficiency
+FROM production_table
+GROUP BY
+  production_table.operator_name
+ORDER BY
+  general_ratio_efficiency DESC
+```
 
 | Operator | General Ratio Efficiency |
 | -------- | -----------------------: |

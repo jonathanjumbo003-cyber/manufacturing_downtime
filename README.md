@@ -67,7 +67,7 @@ FROM production_table
 
 A ratio of **1.00** means the batch took exactly the minimum expected production time, while a ratio above 1.00 indicates that the batch took longer than the minimum benchmark.
 
-![View the Batch Efficiency Graph](assets/ratio_efficiency vs. batch_id.png)
+![View the Batch Efficiency Graph](assets/ratio_efficiency_vs._batch_id.png)
 
 ## 2. Are any operators underperforming?
 

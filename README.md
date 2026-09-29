@@ -110,6 +110,35 @@ This metric shows the relative gap from the minimum production benchmark and sho
 
 A 1/0 flag was created to identify downtime records, and the flags were then aggregated by `factor_id`.
 
+```sql
+ WITH leading_factors AS (
+  SELECT *,
+    CASE
+      WHEN downtime.downtime_in_minutes IS NULL THEN 0
+      ELSE 1
+    END AS factor_flag
+ FROM manufacturing_downtime.line_downtime AS downtime
+),
+factor_count AS (
+SELECT
+  leading_factors.factor_id AS factor_id,
+  SUM(leading_factors.factor_flag) AS flag_count
+FROM leading_factors
+GROUP BY
+  leading_factors.factor_id  
+)
+
+SELECT
+  factor_count.factor_id,
+  factors.description,
+  factor_count.flag_count
+FROM factor_count
+INNER JOIN manufacturing_downtime.downtime_factors AS factors
+  ON factor_count.factor_id = factors.factor_id
+ORDER BY
+  factor_count.flag_count DESC
+```
+
 | Factor             | Downtime Occurrences |
 | ------------------ | -------------------: |
 | Machine adjustment |                   12 |

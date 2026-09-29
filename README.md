@@ -160,6 +160,27 @@ ORDER BY
 
 To measure the impact of each downtime factor, I summed the recorded `downtime_in_minutes` for each `factor_id`.
 
+```sql
+WITH downtime_account AS(
+  SELECT
+    downtime.factor_id AS factor_id,
+    SUM(COALESCE(downtime.downtime_in_minutes, 0)) AS downtime_contribution
+  FROM manufacturing_downtime.line_downtime AS downtime
+  GROUP BY
+    downtime.factor_id
+)
+
+SELECT
+  downtime_account.factor_id,
+  factors.description,
+  downtime_account.downtime_contribution
+FROM downtime_account
+INNER JOIN manufacturing_downtime.downtime_factors AS factors
+  ON downtime_account.factor_id = factors.factor_id
+ORDER BY
+  downtime_account.downtime_contribution DESC
+```
+
 | Factor             | Downtime Contribution (Minutes) |
 | ------------------ | ------------------------------: |
 | Machine adjustment |                             332 |

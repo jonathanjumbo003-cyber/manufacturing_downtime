@@ -49,6 +49,22 @@ I then calculated a **ratio efficiency** for each batch:
 
 `duration_in_minutes / min_batch_time`
 
+```sql
+WITH production_table AS (
+  SELECT
+    production.*,
+    product.min_batch_time
+  FROM manufacturing_downtime.line_productivity AS production
+  INNER JOIN manufacturing_downtime.products AS product
+    ON production.product_id = product.product_id
+)
+
+SELECT
+  production_table.batch_id,
+  ROUND(SAFE_DIVIDE(production_table.duration_in_minutes, production_table.min_batch_time), 2) AS ratio_efficiency
+FROM production_table
+ ```
+
 A ratio of **1.00** means the batch took exactly the minimum expected production time, while a ratio above 1.00 indicates that the batch took longer than the minimum benchmark.
 
 [View the Batch Efficiency Graph](assets/ratio_efficiency vs. batch_id.png)

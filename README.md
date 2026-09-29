@@ -204,6 +204,54 @@ The frequency and downtime-contribution analyses also showed that how often a fa
 
 To investigate operator-related errors, I connected downtime records to operators through `batch_id` and filtered the downtime factors classified as `operator_error = TRUE`.
 
+```sql
+WITH downtime1 AS (
+SELECT *,
+  CASE
+    WHEN downtime.downtime_in_minutes is NULL THEN 0
+    ELSE 1
+  END AS flag_count
+FROM manufacturing_downtime.line_downtime AS downtime
+),
+downtime2 AS (
+  SELECT
+    downtime1.batch_id AS batch_id,
+    production.operator_name as operator_name,
+    downtime1.factor_id AS factor_id,
+    downtime1.flag_count AS flag_count
+  FROM downtime1
+  INNER JOIN manufacturing_downtime.line_productivity AS production
+    ON downtime1.batch_id = production.batch_id
+),
+analysis1 AS (
+  SELECT
+    downtime2.operator_name AS operator_name,
+    downtime2.factor_id AS factor_id,
+    SUM(downtime2.flag_count) AS flag_count
+  FROM downtime2
+  GROUP BY
+    downtime2.operator_name,
+    downtime2.factor_id
+),
+analysis2 AS (
+  SELECT
+    analysis1.operator_name AS operator_name,
+    analysis1.factor_id AS factor_id,
+    analysis1.flag_count AS flag_count,
+    factors.description AS description,
+    factors.operator_error AS operator_error
+  FROM analysis1
+  INNER JOIN manufacturing_downtime.downtime_factors AS factors
+    ON analysis1.factor_id = factors.factor_id
+)
+
+SELECT *
+FROM analysis2
+WHERE
+  analysis2.flag_count > 0 AND
+  analysis2.operator_error is TRUE
+```
+
 | Operator | Operator Error Factor | Occurrences |
 | -------- | --------------------- | ----------: |
 | Mac      | Batch change          |           3 |
@@ -230,3 +278,20 @@ To investigate operator-related errors, I connected downtime records to operator
 These are frequency-based observations and do not by themselves establish that one operator struggles more than another, since the number of batches handled by each operator is not accounted for in these raw counts.
 
 # Conclusion
+
+## Insights
+
+The analysis showed that production batches generally took longer than their minimum expected production times, with operator-level ratios ranging from **1.50 to 1.64**. Mac had the highest overall ratio at **1.64**, followed by Dennis at **1.58**, Dee at **1.56**, and Charlie at **1.50**.
+
+Downtime analysis showed that **Machine adjustment, Machine failure, and Inventory shortage** were the three most frequently recorded downtime factors and also the largest contributors to downtime minutes. Together, they accounted for **811 of the 1,381 recorded downtime minutes (58.7%)**.
+
+The analysis also revealed that downtime frequency does not always correspond to total downtime impact. For example, **Batch change** was recorded 5 times but contributed **160 minutes** of downtime, while **Batch coding error** occurred 6 times and contributed **145 minutes**.
+
+For operator-related errors, **Machine adjustment** appeared most frequently for Charlie, Dee, and Dennis, while Mac's most frequent operator-error factors were **Batch change** and **Batch coding error**. These findings highlight patterns that could be investigated further, rather than being treated as definitive measures of operator performance.
+
+## Remarks
+
+This project gave me practical experience using SQL to connect multiple tables, create calculated metrics, aggregate data, and turn raw manufacturing records into business insights.
+
+It was fun.
+
